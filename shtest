@@ -1,6 +1,7 @@
 #!/bin/bash
 
-testFile=$1
+TEST_FILE=$1
+
 curTestFunc=""
 lastTestStatus=0
 suiteStatus=0
@@ -8,7 +9,7 @@ failMsg=""
 
 function main() {
     assertTestFileExists
-    source $testFile
+    source $TEST_FILE
 
     for tfunc in $(getTestFuncs); do
         curTestFunc="$tfunc"
@@ -21,12 +22,13 @@ function main() {
         tearDown
     done
     printSuiteStatus
+    exitWithSuiteStatus
 }
 
 function setUp() { return 0; }
 function tearDown() { return 0; }
 
-function expectLastCommandSuccessful() {
+function expectLastCommandSucceeded() {
     rc=$?
     
     test $rc -eq 0 ||\
@@ -79,12 +81,12 @@ function resetTestState() {
 }
 
 function assertTestFileExists() {
-    if [ ! $testFile ]; then echo "Usage: shtest [test suite]"; exit 1
-    elif [ ! -e $testFile ]; then echo "$testFile does not exist"; exit 1
+    if [ ! $TEST_FILE ]; then echo "Usage: shtest [test suite]"; exit 1
+    elif [ ! -e $TEST_FILE ]; then echo "$TEST_FILE does not exist"; exit 1
     fi
 }
 
-function getTestFuncs() { egrep '^function' $testFile | egrep -o 'test_\w+'; }
+function getTestFuncs() { egrep '^function' $TEST_FILE | egrep -o 'test_\w+'; }
 function runTest() { $curTestFunc; }
 
 function printTestStatus() {
@@ -107,5 +109,7 @@ function noteSuiteFailure() { suiteStatus=1; }
 function suiteSuccessful() { test $suiteStatus -eq 0; }
 function printSuiteSuccess() { echo "OK"; }
 function printSuiteFailure() { echo "FAIL"; }
+
+function exitWithSuiteStatus() { exit $suiteStatus; }
 
 main
