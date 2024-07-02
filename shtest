@@ -15,7 +15,7 @@ function main() {
 
         resetTestState
         setUp
-        $curTestFunc
+        runTest
         printTestStatus
         if ! lastTestSuccessful; then noteSuiteFailure; fi
         tearDown
@@ -85,6 +85,7 @@ function assertTestFileExists() {
 }
 
 function getTestFuncs() { egrep '^function' $testFile | egrep -o 'test_\w+'; }
+function runTest() { $curTestFunc; }
 
 function printTestStatus() {
     if lastTestSuccessful
