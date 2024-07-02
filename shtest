@@ -1,0 +1,110 @@
+#!/bin/bash
+
+testFile=$1
+curTestFunc=""
+lastTestStatus=0
+suiteStatus=0
+failMsg=""
+
+function main() {
+    assertTestFileExists
+    source $testFile
+
+    for tfunc in $(getTestFuncs); do
+        curTestFunc="$tfunc"
+
+        resetTestState
+        setUp
+        $curTestFunc
+        printTestStatus
+        if ! lastTestSuccessful; then noteSuiteFailure; fi
+        tearDown
+    done
+    printSuiteStatus
+}
+
+function setUp() { return 0; }
+function tearDown() { return 0; }
+
+function expectLastCommandSuccessful() {
+    rc=$?
+    
+    test $rc -eq 0 ||\
+    fail "Non-zero exit code: $rc"
+}
+
+function assertCommandSucceeds() {
+    cmdAndArgs="$@"
+
+    $cmdAndArgs
+    rc=$?
+
+    test $rc -eq 0 ||\
+    fail "Non-zero exit code: '$cmdAndArgs': $rc"
+}
+
+function expectLastCommandFailed() {
+    rc=$?
+    
+    test $rc -ne 0 ||\
+    fail "Command unexpectedly successful"
+}
+
+function assertCommandFails() {
+    cmdAndArgs="$@"
+
+    $cmdAndArgs
+    rc=$?
+
+    test $rc -ne 0 ||\
+    fail "Command unexpectedly succeeded: '$cmdAndArgs'"
+}
+
+function expectGrep() {
+    pattern=$1
+    file=$2
+    
+    egrep -q "$pattern" "$file" ||\
+    fail "Could not find '$pattern' in $file"
+}
+
+function fail() {
+    failMsg=$1
+    lastTestStatus=1
+}
+
+function resetTestState() {
+    lastTestStatus=0
+    failMsg=""
+}
+
+function assertTestFileExists() {
+    if [ ! $testFile ]; then echo "Usage: shtest [test suite]"; exit 1
+    elif [ ! -e $testFile ]; then echo "$testFile does not exist"; exit 1
+    fi
+}
+
+function getTestFuncs() { egrep '^function' $testFile | egrep -o 'test_\w+'; }
+
+function printTestStatus() {
+    if lastTestSuccessful
+    then printSuccess
+    else printFailure
+    fi
+}
+function lastTestSuccessful() { test $lastTestStatus -eq 0; }
+function printSuccess() { echo "$curTestFunc: SUCCESS"; }
+function printFailure() { echo "$curTestFunc: FAIL: $failMsg"; }
+
+function printSuiteStatus () {
+    if suiteSuccessful 
+    then printSuiteSuccess
+    else printSuiteFailure
+    fi
+}
+function noteSuiteFailure() { suiteStatus=1; }
+function suiteSuccessful() { test $suiteStatus -eq 0; }
+function printSuiteSuccess() { echo "OK"; }
+function printSuiteFailure() { echo "FAIL"; }
+
+main
